@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Sidebar from './components/sidebar.jsx'
+import Sidebar from './components/Sidebar.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Clients from './components/Clients.jsx'
 import Payments from './components/Payments.jsx'
