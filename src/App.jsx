@@ -20,9 +20,9 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex' }}>
+    <div>
       <Sidebar page={page} setPage={setPage} />
-      <main style={{ marginLeft: 240, padding: '32px 36px', minHeight: '100vh', flex: 1 }}>
+      <main style={{ marginTop: 56, padding: '24px 20px', minHeight: '100vh' }}>
         {page === 'dashboard' && <Dashboard setPage={setPage} />}
         {page === 'clients' && <Clients onSelectClient={handleSelectClient} />}
         {page === 'payments' && <Payments />}
