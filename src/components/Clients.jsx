@@ -54,23 +54,68 @@ export default function Clients({ onSelectClient }) {
 
   return (
     <div>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
+      <style>{`
+        .clients-table { display: none; }
+        .clients-cards { display: flex; flex-direction: column; gap: 12px; }
+        .client-card { background: #161920; border: 1px solid #2a2f3d; border-radius: 14px; padding: 16px; }
+        .client-card:hover { border-color: rgba(201,168,76,0.3); }
+        .form-row-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+        @media (min-width: 768px) {
+          .clients-table { display: block; }
+          .clients-cards { display: none; }
+          .form-row-2 { grid-template-columns: 1fr 1fr; }
+        }
+      `}</style>
+
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
         <div>
-          <h2 style={{fontFamily:'Georgia,serif',fontSize:28}}>Clients</h2>
-          <p style={{color:'#7a8098',fontSize:14,marginTop:4}}>Manage all your research clients</p>
+          <h2 style={{fontFamily:'Georgia,serif',fontSize:26}}>Clients</h2>
+          <p style={{color:'#7a8098',fontSize:13,marginTop:4}}>Manage all your research clients</p>
         </div>
         <button onClick={() => { setEditing(null); setForm({ name:'', phone:'', topic:'', type:'Thesis', status:'In Progress', total:'', deadline:'', notes:'' }); setModal(true) }}
-          style={{background:'linear-gradient(135deg,#c9a84c,#e8c97a)',color:'#0d0f14',border:'none',borderRadius:8,padding:'10px 20px',fontWeight:600,cursor:'pointer',fontSize:14}}>
-          + Add Client
+          style={{background:'linear-gradient(135deg,#c9a84c,#e8c97a)',color:'#0d0f14',border:'none',borderRadius:8,padding:'10px 16px',fontWeight:600,cursor:'pointer',fontSize:13, whiteSpace:'nowrap'}}>
+          + Add
         </button>
       </div>
 
-      <div style={{position:'relative',marginBottom:20}}>
+      <div style={{position:'relative',marginBottom:16}}>
         <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',color:'#7a8098'}}>🔍</span>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by name or topic..." style={{...inp, paddingLeft:40}} />
       </div>
 
-      <div style={{background:'#161920',border:'1px solid #2a2f3d',borderRadius:18,overflow:'hidden'}}>
+      {/* MOBILE CARDS */}
+      <div className="clients-cards">
+        {filtered.length === 0 && <div style={{textAlign:'center',color:'#7a8098',padding:40,background:'#161920',borderRadius:12,border:'1px solid #2a2f3d'}}>No clients found</div>}
+        {filtered.map(c => {
+          const paid = (c.payments||[]).reduce((a,p)=>a+Number(p.amount),0)
+          const col = getColor(c.name)
+          return (
+            <div key={c.id} className="client-card">
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                <div style={{width:38,height:38,borderRadius:'50%',background:`${col}22`,color:col,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:14,flexShrink:0}}>{initials(c.name)}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:15,cursor:'pointer'}} onClick={()=>onSelectClient(c.id)}>{c.name}</div>
+                  <div style={{fontSize:12,color:'#7a8098'}}>{c.phone||'No contact'}</div>
+                </div>
+                <span style={{background:`${statusColor[c.status]}22`,color:statusColor[c.status],padding:'3px 8px',borderRadius:20,fontSize:11,fontWeight:600,flexShrink:0}}>{c.status}</span>
+              </div>
+              <div style={{fontSize:12,color:'#7a8098',marginBottom:10,lineHeight:1.5,overflow:'hidden',textOverflow:'ellipsis',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{c.topic}</div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12,fontSize:13}}>
+                <span style={{color:'#7a8098'}}>{c.type}</span>
+                <span><span style={{color:'#4caf82',fontWeight:600}}>{fmt(paid)}</span><span style={{color:'#7a8098'}}> / {fmt(c.total)}</span></span>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={()=>onSelectClient(c.id)} style={{flex:1,background:'#1e2230',border:'1px solid #2a2f3d',borderRadius:6,padding:'7px',color:'#e8eaf0',cursor:'pointer',fontSize:12}}>View</button>
+                <button onClick={()=>openEdit(c)} style={{flex:1,background:'#1e2230',border:'1px solid #2a2f3d',borderRadius:6,padding:'7px',color:'#e8eaf0',cursor:'pointer',fontSize:12}}>Edit</button>
+                <button onClick={()=>deleteClient(c.id)} style={{flex:1,background:'rgba(224,92,92,0.1)',border:'1px solid rgba(224,92,92,0.3)',borderRadius:6,padding:'7px',color:'#e05c5c',cursor:'pointer',fontSize:12}}>Delete</button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* DESKTOP TABLE */}
+      <div className="clients-table" style={{background:'#161920',border:'1px solid #2a2f3d',borderRadius:18,overflow:'hidden'}}>
         <table style={{width:'100%',borderCollapse:'collapse'}}>
           <thead>
             <tr>{['Client','Topic','Type','Status','Paid / Total','Actions'].map(h=>(
@@ -87,7 +132,7 @@ export default function Clients({ onSelectClient }) {
                     <div style={{display:'flex',alignItems:'center',gap:10}}>
                       <div style={{width:34,height:34,borderRadius:'50%',background:`${col}22`,color:col,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13}}>{initials(c.name)}</div>
                       <div>
-                        <div style={{fontWeight:600,cursor:'pointer',color:'#e8eaf0'}} onClick={()=>onSelectClient(c.id)}>{c.name}</div>
+                        <div style={{fontWeight:600,cursor:'pointer'}} onClick={()=>onSelectClient(c.id)}>{c.name}</div>
                         <div style={{fontSize:12,color:'#7a8098'}}>{c.phone||'—'}</div>
                       </div>
                     </div>
@@ -124,12 +169,12 @@ export default function Clients({ onSelectClient }) {
               <button onClick={()=>setModal(false)} style={{background:'none',border:'none',color:'#7a8098',fontSize:22,cursor:'pointer'}}>×</button>
             </div>
             <div style={{padding:'24px 28px',display:'flex',flexDirection:'column',gap:14}}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+              <div className="form-row-2">
                 <div><label style={lbl}>Client Name *</label><input style={inp} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Kwame Asante"/></div>
                 <div><label style={lbl}>Phone</label><input style={inp} value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="0244000000"/></div>
               </div>
               <div><label style={lbl}>Research Topic *</label><input style={inp} value={form.topic} onChange={e=>setForm({...form,topic:e.target.value})} placeholder="Full title of the work"/></div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+              <div className="form-row-2">
                 <div><label style={lbl}>Work Type</label>
                   <select style={inp} value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
                     <option>Thesis</option><option>Research Paper</option><option>Dissertation</option>
@@ -141,7 +186,7 @@ export default function Clients({ onSelectClient }) {
                   </select>
                 </div>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+              <div className="form-row-2">
                 <div><label style={lbl}>Total Agreed Fee (GHS)</label><input style={inp} type="number" value={form.total} onChange={e=>setForm({...form,total:e.target.value})} placeholder="0.00"/></div>
                 <div><label style={lbl}>Deadline</label><input style={inp} type="date" value={form.deadline} onChange={e=>setForm({...form,deadline:e.target.value})}/></div>
               </div>
