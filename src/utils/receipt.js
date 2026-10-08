@@ -89,7 +89,7 @@ export function buildReceiptPDF(client, payment, paymentsSoFar) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(100, 100, 100)
-  doc.text('AMOUNT RECEIVED', margin + 20, y + 24)
+  doc.text('AMOUNT PAID', margin + 20, y + 24)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(22)
   doc.setTextColor(40, 130, 90)
