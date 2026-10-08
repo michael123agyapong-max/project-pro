@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
+import { downloadReceipt, shareReceipt } from '../utils/receipt'
 
 const fmt = n => 'GHS ' + Number(n||0).toLocaleString('en-GH', { minimumFractionDigits: 2 })
 const statusColor = { 'In Progress': '#5b8dee', 'Completed': '#4caf82', 'Pending': '#e05c5c', 'Paused': '#c9a84c' }
@@ -14,8 +15,9 @@ export default function ClientDetail({ clientId, onBack }) {
   const [newItem, setNewItem] = useState('')
   const [payModal, setPayModal] = useState(false)
   const [payForm, setPayForm] = useState({ amount:'', date: new Date().toISOString().split('T')[0], note:'' })
+  const [justPaid, setJustPaid] = useState(null)
 
-  useEffect(() => { loadAll() }, [clientId])
+  useEffect(() => { setJustPaid(null); loadAll() }, [clientId])
 
   async function loadAll() {
     const { data: c } = await supabase.from('clients').select('*').eq('id', clientId).single()
@@ -42,8 +44,17 @@ export default function ClientDetail({ clientId, onBack }) {
 
   async function savePayment() {
     if (!payForm.amount || Number(payForm.amount) <= 0) return alert('Enter a valid amount')
-    await supabase.from('payments').insert({ client_id: clientId, amount: Number(payForm.amount), date: payForm.date, note: payForm.note })
-    setPayModal(false); setPayForm({ amount:'', date: new Date().toISOString().split('T')[0], note:'' }); loadAll()
+    const { data } = await supabase.from('payments')
+      .insert({ client_id: clientId, amount: Number(payForm.amount), date: payForm.date, note: payForm.note })
+      .select().single()
+    setPayModal(false); setPayForm({ amount:'', date: new Date().toISOString().split('T')[0], note:'' })
+    await loadAll()
+    if (data) setJustPaid(data)
+  }
+
+  function paymentsFromHere(payment) {
+    const i = payments.findIndex(p => p.id === payment.id)
+    return i === -1 ? [payment] : payments.slice(i)
   }
 
   if (!client) return <div style={{color:'#7a8098',padding:40}}>Loading...</div>
@@ -55,10 +66,25 @@ export default function ClientDetail({ clientId, onBack }) {
   const col = getColor(client.name)
   const inp = { background:'#0d0f14', border:'1px solid #2a2f3d', borderRadius:8, padding:'10px 14px', color:'#e8eaf0', fontFamily:'sans-serif', fontSize:14, outline:'none', width:'100%' }
   const lbl = { fontSize:12, fontWeight:500, color:'#7a8098', textTransform:'uppercase', letterSpacing:0.8, marginBottom:6, display:'block' }
+  const iconBtn = { background:'#1e2230', border:'1px solid #2a2f3d', borderRadius:6, width:30, height:30, color:'#e8eaf0', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }
 
   return (
     <div>
       <button onClick={onBack} style={{background:'none',border:'none',color:'#7a8098',cursor:'pointer',fontSize:14,marginBottom:20,display:'flex',alignItems:'center',gap:6}}>← Back to Clients</button>
+
+      {justPaid && (
+        <div style={{background:'rgba(76,175,130,0.1)',border:'1px solid rgba(76,175,130,0.3)',borderRadius:12,padding:'14px 18px',marginBottom:20,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+          <div>
+            <div style={{fontWeight:600,fontSize:14,color:'#4caf82'}}>Payment recorded — receipt ready</div>
+            <div style={{fontSize:12,color:'#7a8098',marginTop:2}}>{fmt(justPaid.amount)} on {justPaid.date}</div>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <button onClick={()=>downloadReceipt(client,justPaid,paymentsFromHere(justPaid))} style={{background:'#1e2230',border:'1px solid #2a2f3d',borderRadius:8,padding:'8px 14px',color:'#e8eaf0',cursor:'pointer',fontSize:12}}>Download</button>
+            <button onClick={()=>shareReceipt(client,justPaid,paymentsFromHere(justPaid))} style={{background:'linear-gradient(135deg,#c9a84c,#e8c97a)',color:'#0d0f14',border:'none',borderRadius:8,padding:'8px 14px',fontWeight:600,cursor:'pointer',fontSize:12}}>Share</button>
+            <button onClick={()=>setJustPaid(null)} style={{background:'none',border:'none',color:'#7a8098',fontSize:18,cursor:'pointer'}}>×</button>
+          </div>
+        </div>
+      )}
 
       <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
         <div style={{width:52,height:52,borderRadius:'50%',background:`${col}22`,color:col,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:18}}>{initials(client.name)}</div>
@@ -131,12 +157,16 @@ export default function ClientDetail({ clientId, onBack }) {
         <div style={{padding:20}}>
           {payments.length===0 && <div style={{color:'#7a8098',fontSize:14,textAlign:'center',padding:'20px 0'}}>No payments recorded yet</div>}
           {payments.map(p=>(
-            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',background:'#0d0f14',borderRadius:8,border:'1px solid #2a2f3d',marginBottom:8}}>
-              <div>
+            <div key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 16px',background:'#0d0f14',borderRadius:8,border:'1px solid #2a2f3d',marginBottom:8,gap:12}}>
+              <div style={{minWidth:0}}>
                 <div style={{fontWeight:500,fontSize:14}}>{p.note||'Payment'}</div>
                 <div style={{fontSize:12,color:'#7a8098'}}>{p.date}</div>
               </div>
-              <div style={{color:'#4caf82',fontWeight:600,fontSize:15}}>{fmt(p.amount)}</div>
+              <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                <div style={{color:'#4caf82',fontWeight:600,fontSize:15}}>{fmt(p.amount)}</div>
+                <button onClick={()=>downloadReceipt(client,p,paymentsFromHere(p))} title="Download receipt" style={iconBtn}>⬇</button>
+                <button onClick={()=>shareReceipt(client,p,paymentsFromHere(p))} title="Share receipt" style={iconBtn}>↗</button>
+              </div>
             </div>
           ))}
         </div>
