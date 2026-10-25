@@ -2,24 +2,28 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 
 export default function Dashboard({ setPage }) {
-  const [stats, setStats] = useState({ revenue: 0, completed: 0, inProgress: 0, expected: 0 })
+  const [stats, setStats] = useState({ revenue: 0, completed: 0, inProgress: 0, expected: 0, expenses: 0, net: 0 })
   const [recent, setRecent] = useState([])
 
   useEffect(() => { loadData() }, [])
 
   async function loadData() {
     const { data: clients } = await supabase.from('clients').select('*, payments(*)')
+    const { data: expensesData } = await supabase.from('expenses').select('*')
     if (!clients) return
     const revenue = clients.reduce((s, c) => s + (c.payments||[]).reduce((a, p) => a + Number(p.amount), 0), 0)
     const expected = clients.reduce((s, c) => {
       const paid = (c.payments||[]).reduce((a, p) => a + Number(p.amount), 0)
       return s + (Number(c.total||0) - paid)
     }, 0)
+    const expenses = (expensesData || []).reduce((a, e) => a + Number(e.amount), 0)
     setStats({
       revenue,
       completed: clients.filter(c => c.status === 'Completed').length,
       inProgress: clients.filter(c => c.status === 'In Progress').length,
-      expected
+      expected,
+      expenses,
+      net: revenue - expenses
     })
     setRecent(clients.slice(-5).reverse())
   }
@@ -50,6 +54,8 @@ export default function Dashboard({ setPage }) {
       <div className="stat-grid">
         {[
           { label: 'Total Revenue', value: fmt(stats.revenue), sub: 'Received', color: '#c9a84c' },
+          { label: 'Expenses', value: fmt(stats.expenses), sub: 'Operating costs', color: '#e05c5c' },
+          { label: 'Net Revenue', value: fmt(stats.net), sub: 'After expenses', color: '#4caf82' },
           { label: 'Completed', value: stats.completed, sub: 'Works done', color: '#4caf82' },
           { label: 'In Progress', value: stats.inProgress, sub: 'Active', color: '#5b8dee' },
           { label: 'Expected', value: fmt(stats.expected), sub: 'Outstanding', color: '#e07c3d' },

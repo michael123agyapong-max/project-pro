@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Clients from './components/Clients.jsx'
 import Payments from './components/Payments.jsx'
+import Expenses from './components/Expenses.jsx'
 import ClientDetail from './components/ClientDetail.jsx'
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
         {page === 'dashboard' && <Dashboard setPage={setPage} />}
         {page === 'clients' && <Clients onSelectClient={handleSelectClient} />}
         {page === 'payments' && <Payments />}
+        {page === 'expenses' && <Expenses />}
         {page === 'detail' && selectedClient && <ClientDetail clientId={selectedClient} onBack={handleBack} />}
       </main>
     </div>

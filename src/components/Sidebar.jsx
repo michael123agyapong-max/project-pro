@@ -7,6 +7,7 @@ export default function Sidebar({ page, setPage }) {
     { id: 'dashboard', label: 'Dashboard', icon: '▦' },
     { id: 'clients', label: 'Clients', icon: '👥' },
     { id: 'payments', label: 'Payments', icon: '💰' },
+    { id: 'expenses', label: 'Expenses', icon: '🧾' },
   ]
 
   function navigate(id) {
